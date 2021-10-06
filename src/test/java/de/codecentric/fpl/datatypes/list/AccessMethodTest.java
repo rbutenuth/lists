@@ -10,14 +10,13 @@ import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.Test;
 
-import de.codecentric.fpl.datatypes.FplValue;
 import de.codecentric.linked.list.SingleLinkedList;
 
 public class AccessMethodTest extends AbstractListTest {
 
 	@Test
 	public void createAndCheck() {
-		SingleLinkedList list = create(0, 10);
+		SingleLinkedList<Integer> list = create(0, 10);
 		assertEquals(10, list.size());
 		check(list, 0, 10);
 	}
@@ -25,9 +24,9 @@ public class AccessMethodTest extends AbstractListTest {
 	@Test
 	public void iterateTooMuchSmallList() {
 		assertThrows(NoSuchElementException.class, () -> {
-			Iterator<FplValue> iter = SingleLinkedList.fromValue(value(1)).iterator();
+			Iterator<Integer> iter = SingleLinkedList.fromValue(1).iterator();
 			assertTrue(iter.hasNext());
-			assertEquals(value(1), iter.next());
+			assertEquals(1, iter.next());
 			assertFalse(iter.hasNext());
 			iter.next();
 		});
@@ -36,10 +35,10 @@ public class AccessMethodTest extends AbstractListTest {
 	@Test
 	public void iterateTooMuchLargeList() {
 		assertThrows(NoSuchElementException.class, () -> {
-			Iterator<FplValue> iter = create(0, 100).iterator();
+			Iterator<Integer> iter = create(0, 100).iterator();
 			for (int i = 0; i <= 99; i++) {
 				assertTrue(iter.hasNext());
-				assertEquals(value(i), iter.next());
+				assertEquals(i, iter.next());
 			}
 			assertFalse(iter.hasNext());
 			iter.next();
@@ -53,26 +52,26 @@ public class AccessMethodTest extends AbstractListTest {
 
 	@Test
 	public void firstSizeOne() {
-		SingleLinkedList list = SingleLinkedList.fromValue(value(1));
-		assertEquals(value(1), list.first());
+		SingleLinkedList<Integer> list = SingleLinkedList.fromValue(1);
+		assertEquals(1, list.first());
 	}
 
 	@Test
 	public void firstSmall() {
-		SingleLinkedList list = create(3, 6);
-		assertEquals(value(3), list.first());
+		SingleLinkedList<Integer> list = create(3, 6);
+		assertEquals(3, list.first());
 	}
 
 	@Test
 	public void firstLarge() {
-		SingleLinkedList list = create(3, 51);
-		assertEquals(value(3), list.first());
+		SingleLinkedList<Integer> list = create(3, 51);
+		assertEquals(3, list.first());
 	}
 
 	@Test
 	public void firstEmptyFails() {
 		assertThrows(Exception.class, () -> {
-			SingleLinkedList list = SingleLinkedList.fromValues(new FplValue[0]);
+			SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
 			list.first();
 		});
 	}
@@ -80,21 +79,21 @@ public class AccessMethodTest extends AbstractListTest {
 	@Test
 	public void removeFirstEmptyFails() {
 		assertThrows(Exception.class, () -> {
-			SingleLinkedList list = SingleLinkedList.fromValues(new FplValue[0]);
+			SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
 			list.removeFirst();
 		});
 	}
 
 	@Test
 	public void removeFirstSmall() {
-		SingleLinkedList list = create(0, 6).removeFirst();
+		SingleLinkedList<Integer> list = create(0, 6).removeFirst();
 		check(list, 1, 6);
 	}
 
 	@Test
 	public void lastEmptyFails() {
 		assertThrows(Exception.class, () -> {
-			SingleLinkedList list = SingleLinkedList.fromValues(new FplValue[0]);
+			SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
 			list.removeFirst();
 		});
 	}

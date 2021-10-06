@@ -4,31 +4,29 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import de.codecentric.fpl.datatypes.FplValue;
-
 /**
  * A persistent list implementation.
  */
-public class SingleLinkedList implements FplValue, Iterable<FplValue> {
-	public static final SingleLinkedList EMPTY_LIST = new SingleLinkedList();
+public class SingleLinkedList<E> implements Iterable<E> {
+	public static final SingleLinkedList<?> EMPTY_LIST = new SingleLinkedList<Object>();
 
-	private static class Node {
-		private final FplValue value;
-		private Node next;
+	private static class Node<E> {
+		private final E value;
+		private Node<E> next;
 		
-		private Node(FplValue value) {
+		private Node(E value) {
 			this.value = value;
 		}
 	}
 	
-	private final Node first;
+	private final Node<E> first;
 	
 	// private because there is EMPTY_LIST
 	private SingleLinkedList() {
 		first = null;
 	}
 
-	private SingleLinkedList(Node first) {
+	private SingleLinkedList(Node<E> first) {
 		this.first = first;
 	}
 
@@ -37,9 +35,9 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 	 *
 	 * @param value The value
 	 */
-	public static SingleLinkedList fromValue(FplValue value) {
-		Node node = new Node(value);
-		return new SingleLinkedList(node);
+	public static <E> SingleLinkedList<E> fromValue(E value) {
+		Node<E> node = new Node<E>(value);
+		return new SingleLinkedList<E>(node);
 	}
 
 	/**
@@ -48,88 +46,92 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 	 * @param values Array with values, the values will NOT be copied, so don't
 	 *               modify the array after calling this method!
 	 */
-	public static SingleLinkedList fromValues(FplValue... values) {
+	@SuppressWarnings("unchecked")
+	public static <E> SingleLinkedList<E> fromValues(E... values) {
 		if (values.length == 0) {
-			return EMPTY_LIST;
+			return (SingleLinkedList<E>) EMPTY_LIST;
 		} else {
-			Node first = new Node(values[0]);
-			Node last = first;
+			Node<E> first = new Node<E>(values[0]);
+			Node<E> last = first;
 			for (int i = 1; i < values.length; i++) {
-				FplValue value = values[i];
-				Node node = new Node(value);
+				E value = values[i];
+				Node<E> node = new Node<E>(value);
 				last.next = node;
 				last = node;
 			}
-			return new SingleLinkedList(first);
+			return new SingleLinkedList<E>(first);
 		}
 	}
 
-	public static SingleLinkedList fromValues(List<? extends FplValue> list) {
+	@SuppressWarnings("unchecked")
+	public static <E> SingleLinkedList<E> fromValues(List<E> list) {
 		if (list.isEmpty()) {
-			return EMPTY_LIST;
+			return (SingleLinkedList<E>) EMPTY_LIST;
 		} else {
-			Node first = new Node(list.get(0));
-			Node last = first;
+			Node<E> first = new Node<E>(list.get(0));
+			Node<E> last = first;
 			for (int i = 1; i < list.size(); i++) {
-				FplValue value = list.get(i);
-				Node node = new Node(value);
+				E value = list.get(i);
+				Node<E> node = new Node<E>(value);
 				last.next = node;
 				last = node;
 			}
-			return new SingleLinkedList(first);
+			return new SingleLinkedList<E>(first);
 		}
 	}
 
-	public static SingleLinkedList fromIterator(Iterator<FplValue> iter) {
+	@SuppressWarnings("unchecked")
+	public static <E> SingleLinkedList<E> fromIterator(Iterator<E> iter) {
 		if (iter.hasNext()) {
-			Node first = new Node(iter.next());
-			Node last = first;
+			Node<E> first = new Node<E>(iter.next());
+			Node<E> last = first;
 			while (iter.hasNext()) {
-				FplValue value = iter.next();
-				Node node = new Node(value);
+				E value = iter.next();
+				Node<E> node = new Node<E>(value);
 				last.next = node;
 				last = node;
 			}
-			return new SingleLinkedList(first);
+			return new SingleLinkedList<E>(first);
 		} else {
-			return EMPTY_LIST;
+			return (SingleLinkedList<E>) EMPTY_LIST;
 		}
 	}
 
 	/**
 	 * @return First element of the list.
-	 * @throws EvaluationException If list is empty.
+	 * @throws IllegalArgumentException If list is empty.
 	 */
-	public FplValue first() {
+	public E first() {
 		checkNotEmpty();
 		return first.value;
 	}
 
 	/**
 	 * @return Sublist without the first element.
-	 * @throws EvaluationException If list is empty.
+	 * @throws IllegalArgumentException If list is empty.
 	 */
-	public SingleLinkedList removeFirst() {
+	@SuppressWarnings("unchecked")
+	public SingleLinkedList<E> removeFirst() {
 		checkNotEmpty();
 		if (first.next == null) {
-			return EMPTY_LIST;
+			return (SingleLinkedList<E>) EMPTY_LIST;
 		} else {
-			return new SingleLinkedList(first.next);
+			return new SingleLinkedList<E>(first.next);
 		}
 	}
 
 	/**
 	 * @param position Position, starting with 0.
 	 * @return Element at position.
-	 * @throws EvaluationException If list is empty or if <code>position</code> &lt;
+	 * @throws IllegalArgumentException If list is empty or if <code>position</code> &lt;
 	 *                             0 or &gt;= {@link #size()}.
 	 */
-	public FplValue get(int position) {
+	public E get(int position) {
 		checkNotEmpty();
 		if (position < 0) {
 			throw new IllegalArgumentException("position < 0");
 		}
-		Node node = first;
+		Node<E> node = first;
 		for (int i = 0; i < position; i++) {
 			node = node.next;
 			if (node == null) {
@@ -145,10 +147,10 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 	 * @param value Element to insert at front.
 	 * @return New List: This list plus one new element at front.
 	 */
-	public SingleLinkedList addAtStart(FplValue value) {
-		Node node = new Node(value);
+	public SingleLinkedList<E> addAtStart(E value) {
+		Node<E> node = new Node<E>(value);
 		node.next = first;
-		return new SingleLinkedList(node);
+		return new SingleLinkedList<E>(node);
 	}
 
 	/**
@@ -156,7 +158,7 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 	 */
 	public int size() {
 		int count = 0;
-		Node node = first;
+		Node<E> node = first;
 		while (node != null) {
 			node = node.next;
 			count++;
@@ -164,15 +166,16 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 		return count;
 	}
 
-	public SingleLinkedList map(java.util.function.Function<FplValue, FplValue> operator) {
+	@SuppressWarnings("unchecked")
+	public <T> SingleLinkedList<T> map(java.util.function.Function<E, T> operator) {
 		if (first == null) {
-			return EMPTY_LIST;
+			return (SingleLinkedList<T>) EMPTY_LIST;
 		} else {
-			Node current = first;
-			Node newFirst = null;
-			Node last = null;
+			Node<E> current = first;
+			Node<T> newFirst = null;
+			Node<T> last = null;
 			while (current != null) {
-				Node node = new Node(operator.apply(current.value));
+				Node<T> node = new Node<T>(operator.apply(current.value));
 				if (newFirst == null) {
 					newFirst = node;
 				} else {
@@ -181,21 +184,22 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 				last = node;
 				current = current.next;
 			}
-			return new SingleLinkedList(newFirst);
+			return new SingleLinkedList<T>(newFirst);
 		}
 	}
 
-	public SingleLinkedList flatMap(java.util.function.Function<FplValue, SingleLinkedList> operator) {
+	@SuppressWarnings("unchecked")
+	public <T> SingleLinkedList<T> flatMap(java.util.function.Function<E, SingleLinkedList<T>> operator) {
 		if (first == null) {
-			return EMPTY_LIST;
+			return (SingleLinkedList<T>) EMPTY_LIST;
 		} else {
-			Node current = first;
-			Node newFirst = null;
-			Node last = null;
+			Node<E> current = first;
+			Node<T> newFirst = null;
+			Node<T> last = null;
 			while (current != null) {
-				Node subCurrent = ((SingleLinkedList)operator.apply(current.value)).first;
+				Node<T> subCurrent = operator.apply(current.value).first;
 				while (subCurrent != null) {
-					Node node = new Node(subCurrent.value);
+					Node<T> node = new Node<T>(subCurrent.value);
 					if (newFirst == null) {
 						newFirst = node;
 					} else {
@@ -206,14 +210,14 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 				}
 				current = current.next;
 			}
-			return new SingleLinkedList(newFirst);
+			return new SingleLinkedList<T>(newFirst);
 		}
 	}
 
 	@Override
-	public Iterator<FplValue> iterator() {
-		return new Iterator<FplValue>() {
-			Node node = first;
+	public Iterator<E> iterator() {
+		return new Iterator<E>() {
+			Node<E> node = first;
 			
 			@Override
 			public boolean hasNext() {
@@ -221,11 +225,11 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 			}
 
 			@Override
-			public FplValue next() {
+			public E next() {
 				if (node == null) {
 					throw new NoSuchElementException();
 				}
-				FplValue result = node.value;
+				E result = node.value;
 				node = node.next;
 				return result;
 			}
@@ -243,9 +247,9 @@ public class SingleLinkedList implements FplValue, Iterable<FplValue> {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append('(');
-		Iterator<FplValue> iter = iterator();
+		Iterator<E> iter = iterator();
 		while (iter.hasNext()) {
-			FplValue v = iter.next();
+			E v = iter.next();
 			sb.append(v == null ? "nil" : v.toString());
 			if (iter.hasNext()) {
 				sb.append(" ");

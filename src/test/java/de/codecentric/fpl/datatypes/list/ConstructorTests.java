@@ -10,89 +10,87 @@ import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.Test;
 
-import de.codecentric.fpl.datatypes.FplInteger;
-import de.codecentric.fpl.datatypes.FplValue;
 import de.codecentric.linked.list.SingleLinkedList;
 
 public class ConstructorTests extends AbstractListTest {
 	@Test
 	public void empty() {
-		SingleLinkedList list = SingleLinkedList.fromValues(new FplValue[0]);
+		SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
 		assertEquals(0, list.size());
 		assertFalse(list.iterator().hasNext());
 	}
 
 	@Test
 	public void elementConstructor() {
-		SingleLinkedList list = SingleLinkedList.fromValue(value(42));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromValue(42);
 		assertEquals(1, list.size());
-		assertEquals(value(42), list.get(0));
+		assertEquals(42, list.get(0));
 	}
 
 	@Test
 	public void emptyListConstructor() {
-		SingleLinkedList list = SingleLinkedList.fromValues(Collections.emptyList());
+		SingleLinkedList<Integer> list = SingleLinkedList.fromValues(Collections.emptyList());
 		assertEquals(0, list.size());
 	}
 
 	@Test
 	public void bigArrayConstructor() {
-		FplValue[] values = new FplValue[100];
+		Integer[] values = new Integer[100];
 		for (int i = 0; i < values.length; i++) {
-			values[i] = value(i);
+			values[i] = i;
 		}
-		SingleLinkedList list = SingleLinkedList.fromValues(values);
+		SingleLinkedList<Integer> list = SingleLinkedList.fromValues(values);
 		check(list, 0, values.length);
 	}
 
 	@Test
 	public void bigListConstructor() {
-		FplValue[] values = new FplValue[100];
+		Integer[] values = new Integer[100];
 		for (int i = 0; i < values.length; i++) {
-			values[i] = value(i);
+			values[i] = i;
 		}
-		SingleLinkedList list = SingleLinkedList.fromValues(Arrays.asList(values));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromValues(Arrays.asList(values));
 		check(list, 0, values.length);
 	}
 
 	@Test
 	public void emptyFromIterator() throws Exception {
-		SingleLinkedList list = SingleLinkedList.fromIterator(createIterator(0, 0));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromIterator(createIterator(0, 0));
 		check(list, 0, 0);
 	}
 
 	@Test
 	public void fromIteratorOneBucket() throws Exception {
-		SingleLinkedList list = SingleLinkedList.fromIterator(createIterator(0, 5));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromIterator(createIterator(0, 5));
 		check(list, 0, 5);
 	}
 
 	@Test
 	public void fromIteratorTwoBuckets() throws Exception {
-		SingleLinkedList list = SingleLinkedList.fromIterator(createIterator(0, 10));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromIterator(createIterator(0, 10));
 		check(list, 0, 10);
 	}
 
 	@Test
 	public void fromIteratorThreeBuckets() throws Exception {
-		SingleLinkedList list = SingleLinkedList.fromIterator(createIterator(0, 163));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromIterator(createIterator(0, 163));
 		check(list, 0, 163);
 	}
 
 	@Test
 	public void fromIteratorThreeBucketsWithLastFull() throws Exception {
-		SingleLinkedList list = SingleLinkedList.fromIterator(createIterator(0, 167));
+		SingleLinkedList<Integer> list = SingleLinkedList.fromIterator(createIterator(0, 167));
 		check(list, 0, 167);
 	}
 
-	private Iterator<FplValue> createIterator(int from, int to) {
-		return new Iterator<FplValue>() {
+	private Iterator<Integer> createIterator(int from, int to) {
+		return new Iterator<Integer>() {
 			int nextValue = from;
 
 			@Override
-			public FplValue next() {
+			public Integer next() {
 				if (hasNext()) {
-					return FplInteger.valueOf(nextValue++);
+					return Integer.valueOf(nextValue++);
 				} else {
 					throw new NoSuchElementException();
 				}

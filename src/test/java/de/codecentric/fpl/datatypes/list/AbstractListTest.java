@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Iterator;
 
-import de.codecentric.fpl.datatypes.FplInteger;
-import de.codecentric.fpl.datatypes.FplValue;
 import de.codecentric.linked.list.SingleLinkedList;
 
 public class AbstractListTest {
@@ -16,13 +14,13 @@ public class AbstractListTest {
 	 * @param from First element (including)
 	 * @param to   Last element in list (excluding)
 	 */
-	public static void check(SingleLinkedList list, int from, int to) {
+	public static void check(SingleLinkedList<Integer> list, int from, int to) {
 		assertEquals(to - from, list.size(), "List size");
-		Iterator<FplValue> iter = list.iterator();
+		Iterator<Integer> iter = list.iterator();
 		int value = from;
 		while (iter.hasNext()) {
-			FplInteger next = (FplInteger) iter.next();
-			assertEquals(value, next.getValue());
+			Integer next = (Integer) iter.next();
+			assertEquals(value, next);
 			value++;
 		}
 		assertEquals(to, value);
@@ -34,19 +32,16 @@ public class AbstractListTest {
 	 * @return List of {@link FplInteger}, including <code>start</code> and
 	 *         <code>end</code>
 	 */
-	public static SingleLinkedList create(int from, int to) {
+	public static SingleLinkedList<Integer> create(int from, int to) {
 		return SingleLinkedList.fromValues(createValues(from, to));
 	}
 
-	public static  FplValue[] createValues(int from, int to) {
-		FplValue[] values = new FplValue[to - from];
+	public static  Integer[] createValues(int from, int to) {
+		Integer[] values = new Integer[to - from];
 		for (int i = from, j = 0; i < to; i++, j++) {
-			values[j] = value(i);
+			values[j] = i;
 		}
 		return values;
 	}
 
-	public static FplInteger value(int i) {
-		return FplInteger.valueOf(i);
-	}
 }
