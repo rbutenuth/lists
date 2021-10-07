@@ -4,6 +4,7 @@ import static java.lang.System.arraycopy;
 import static java.util.Arrays.copyOf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -42,17 +43,17 @@ public class FplList<E> implements Iterable<E> {
 	/**
 	 * Create a list.
 	 *
-	 * @param values Array with values, the values will NOT be copied, so don't
-	 *               modify the array after calling this method!
+	 * @param values Array with values, the values will be copied, so think about
+	 *               using {@link #fromIterator(Iterator, int)} instead.
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes", "unused" })
 	public static <E> FplList<E> fromValues(E... values) {
 		if (values.length == 0) {
 			return (FplList<E>) EMPTY_LIST;
 		} else {
 			Object[][] data = new Object[1][];
-			data[0] = values;
-			return new FplList<E>(data);
+			data[0] = Arrays.copyOf(values, values.length);
+			return new <E>FplList(data);
 		}
 	}
 
