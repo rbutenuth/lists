@@ -4,10 +4,10 @@ import static java.lang.System.arraycopy;
 import static java.util.Arrays.copyOf;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
 
 /**
  * A persistent list implementation.
@@ -40,23 +40,6 @@ public class FplList<E> implements Iterable<E> {
 		return new FplList<E>(data);
 	}
 
-	/**
-	 * Create a list.
-	 *
-	 * @param values Array with values, the values will be copied, so think about
-	 *               using {@link #fromIterator(Iterator, int)} instead.
-	 */
-	@SuppressWarnings({ "unchecked", "rawtypes", "unused" })
-	public static <E> FplList<E> fromValues(E... values) {
-		if (values.length == 0) {
-			return (FplList<E>) EMPTY_LIST;
-		} else {
-			Object[][] data = new Object[1][];
-			data[0] = Arrays.copyOf(values, values.length);
-			return new <E>FplList(data);
-		}
-	}
-
 	@SuppressWarnings("unchecked")
 	public static <E> FplList<E> fromValues(List<E> list) {
 		if (list.isEmpty()) {
@@ -69,56 +52,62 @@ public class FplList<E> implements Iterable<E> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <E> FplList<E> fromIterator(Iterator<E> iter, int size) {
-		Object[][] shape = createEmptyShape(size);
-		for (int bucketsIdx = 0; bucketsIdx < shape.length; bucketsIdx++) {
-			Object[] bucket = shape[bucketsIdx];
-			for (int inBucketIdx = 0; inBucketIdx < bucket.length; inBucketIdx++) {
-				bucket[inBucketIdx] = iter.next();
-			}
-		}
 		if (iter.hasNext()) {
-			throw new IllegalArgumentException("Iterator conatins too much elements");
+			Object[][] shape = createEmptyShape(size);
+			for (int bucketsIdx = 0; bucketsIdx < shape.length; bucketsIdx++) {
+				Object[] bucket = shape[bucketsIdx];
+				for (int inBucketIdx = 0; inBucketIdx < bucket.length; inBucketIdx++) {
+					bucket[inBucketIdx] = iter.next();
+				}
+			}
+			if (iter.hasNext()) {
+				throw new IllegalArgumentException("Iterator conatins too much elements");
+			}
+			return new FplList<E>(shape);
+		} else {
+			return (FplList<E>) EMPTY_LIST;
 		}
-		return new FplList<E>(shape);
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <E> FplList<E> fromIterator(Iterator<E> iter) {
-		Object[][] data = new Object[1][];
-		int bucketSize = BASE_SIZE;
-		Object[] currentBucket = new Object[bucketSize];
-		data[0] = currentBucket;
-		int currentBucketUsed = 0;
+		if (!iter.hasNext()) {
+			return (FplList<E>) EMPTY_LIST;
+		} else {
+			Object[][] data = new Object[1][];
+			int bucketSize = BASE_SIZE;
+			Object[] currentBucket = new Object[bucketSize];
+			data[0] = currentBucket;
+			int currentBucketUsed = 0;
 
-		while (iter.hasNext()) {
-			E value = iter.next();
+			while (iter.hasNext()) {
+				E value = iter.next();
 
-			if (currentBucketUsed < currentBucket.length) {
-				// Room in last bucket, use it
-				currentBucket[currentBucketUsed++] = value;
-			} else {
-				// Last bucket is full, create a new one
-				Object[][] newData = new Object[data.length + 1][];
-				arraycopy(data, 0, newData, 0, data.length);
-				bucketSize += bucketSize / 2; // * 1.5
-				data = newData;
-				data[data.length - 1] = currentBucket = new Object[bucketSize];
-				currentBucketUsed = 1;
-				currentBucket[0] = value;
+				if (currentBucketUsed < currentBucket.length) {
+					// Room in last bucket, use it
+					currentBucket[currentBucketUsed++] = value;
+				} else {
+					// Last bucket is full, create a new one
+					Object[][] newData = new Object[data.length + 1][];
+					arraycopy(data, 0, newData, 0, data.length);
+					bucketSize += bucketSize / 2; // * 1.5
+					data = newData;
+					data[data.length - 1] = currentBucket = new Object[bucketSize];
+					currentBucketUsed = 1;
+					currentBucket[0] = value;
+				}
 			}
-		}
 
-		if (currentBucketUsed == 0) {
-			Object[][] dataNew = new Object[data.length - 1][];
-			arraycopy(data, 0, dataNew, 0, dataNew.length);
-			data = dataNew;
-		} else if (currentBucket.length > currentBucketUsed) {
-			Object[] shrinked = new Object[currentBucketUsed];
-			arraycopy(currentBucket, 0, shrinked, 0, currentBucketUsed);
-			data[data.length - 1] = shrinked;
-		}
+			if (currentBucket.length > currentBucketUsed) {
+				Object[] shrinked = new Object[currentBucketUsed];
+				arraycopy(currentBucket, 0, shrinked, 0, currentBucketUsed);
+				data[data.length - 1] = shrinked;
+			}
 
-		return new FplList<E>(data);
+			return new FplList<E>(data);
+		}
 	}
 
 	/**
@@ -283,8 +272,8 @@ public class FplList<E> implements Iterable<E> {
 	/**
 	 * @param position Position, starting with 0.
 	 * @return Element at position.
-	 * @throws IllegalArgumentException If list is empty or if <code>position</code> &lt;
-	 *                             0 or &gt;= {@link #size()}.
+	 * @throws IllegalArgumentException If list is empty or if <code>position</code>
+	 *                                  &lt; 0 or &gt;= {@link #size()}.
 	 */
 	public Object get(int position) {
 		checkNotEmpty();
@@ -661,13 +650,14 @@ public class FplList<E> implements Iterable<E> {
 		return buckets;
 	}
 
-	@SuppressWarnings("unchecked")
 	private FplList<E> subListFromOneLargeArray(Object[] fplValues, int first, int behindLast) {
 		int size = behindLast - first;
 		if (size <= BASE_SIZE) {
 			Object[] b = new Object[size];
+			Object[][] data = new Object[1][];
+			data[0] = b;
 			arraycopy(fplValues, first, b, 0, size);
-			return (FplList<E>) FplList.fromValues(b);
+			return new FplList<E>(data);
 		} else {
 			Object[][] bucketsDst = createEmptyShape(size);
 			for (int i = 0, bucketIdx = 0; bucketIdx < bucketsDst.length; bucketIdx++) {
@@ -834,20 +824,8 @@ public class FplList<E> implements Iterable<E> {
 		}, size());
 	}
 
-	public <T> FplList<T> flatMapWithIntermediateArrayList(java.util.function.Function<E, FplList<T>> operator) {
-		List<T> values = new ArrayList<>(size());
-		Iterator<E> iter = iterator();
-		while (iter.hasNext()) {
-			FplList<T> subList = operator.apply(iter.next());
-			for (T subValue : subList) {
-				values.add(subValue);
-			}
-		}
-		return FplList.fromValues(values);
-	}
-
 	@SuppressWarnings("unchecked")
-	public <T> FplList<T> flatMapWithIterator(java.util.function.Function<E, FplList<T>> operator) {
+	public <T> FplList<T> flatMap(Function<E, FplList<T>> operator) {
 		Iterator<E> listIter = iterator();
 		if (listIter.hasNext()) {
 
@@ -876,7 +854,7 @@ public class FplList<E> implements Iterable<E> {
 			return (FplList<T>) EMPTY_LIST;
 		}
 	}
-	
+
 	@Override
 	public Iterator<E> iterator() {
 		return new Iterator<E>() {
