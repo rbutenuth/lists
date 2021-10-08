@@ -3,7 +3,6 @@ package de.codecentric.fpl.datatypes.list;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.copyOf;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
