@@ -10,13 +10,11 @@ import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.Test;
 
-import de.codecentric.linked.list.SingleLinkedList;
-
 public class AccessMethodTest extends AbstractListTest {
 
 	@Test
 	public void createAndCheck() {
-		SingleLinkedList<Integer> list = create(0, 10);
+		FplList<Integer> list = create(0, 10);
 		assertEquals(10, list.size());
 		check(list, 0, 10);
 	}
@@ -24,9 +22,9 @@ public class AccessMethodTest extends AbstractListTest {
 	@Test
 	public void iterateTooMuchSmallList() {
 		assertThrows(NoSuchElementException.class, () -> {
-			Iterator<Integer> iter = SingleLinkedList.fromValue(1).iterator();
+			Iterator<Integer> iter = FplList.fromValue(value(1)).iterator();
 			assertTrue(iter.hasNext());
-			assertEquals(1, iter.next());
+			assertEquals(value(1), iter.next());
 			assertFalse(iter.hasNext());
 			iter.next();
 		});
@@ -38,7 +36,7 @@ public class AccessMethodTest extends AbstractListTest {
 			Iterator<Integer> iter = create(0, 100).iterator();
 			for (int i = 0; i <= 99; i++) {
 				assertTrue(iter.hasNext());
-				assertEquals(i, iter.next());
+				assertEquals(value(i), iter.next());
 			}
 			assertFalse(iter.hasNext());
 			iter.next();
@@ -51,77 +49,125 @@ public class AccessMethodTest extends AbstractListTest {
 	}
 
 	@Test
+	public void listToWithNull() {
+		assertEquals("(0 null 2)", FplList.fromValues(0, null, 2).toString());
+	}
+
+	@Test
 	public void firstSizeOne() {
-		SingleLinkedList<Integer> list = SingleLinkedList.fromValue(1);
-		assertEquals(1, list.first());
+		FplList<Integer> list = FplList.fromValue(value(1));
+		assertEquals(value(1), list.first());
 	}
 
 	@Test
 	public void firstSmall() {
-		SingleLinkedList<Integer> list = create(3, 6);
-		assertEquals(3, list.first());
+		FplList<Integer> list = create(3, 6);
+		assertEquals(value(3), list.first());
 	}
 
 	@Test
 	public void firstLarge() {
-		SingleLinkedList<Integer> list = create(3, 51);
-		assertEquals(3, list.first());
+		FplList<Integer> list = create(3, 51);
+		assertEquals(value(3), list.first());
 	}
 
 	@Test
 	public void firstEmptyFails() {
-		assertThrows(Exception.class, () -> {
-			SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
+		assertThrows(IllegalArgumentException.class, () -> {
+			FplList<Integer> list = FplList.emptyList();
 			list.first();
 		});
 	}
 
 	@Test
+	public void lastSizeOne() {
+		FplList<Integer> list = FplList.fromValue(value(1));
+		assertEquals(value(1), list.last());
+	}
+
+	@Test
+	public void lastLarge() {
+		FplList<Integer> list = create(3, 51);
+		assertEquals(value(50), list.last());
+	}
+
+	@Test
 	public void removeFirstEmptyFails() {
-		assertThrows(Exception.class, () -> {
-			SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
+		assertThrows(IllegalArgumentException.class, () -> {
+			FplList<Integer> list = FplList.emptyList();
 			list.removeFirst();
 		});
 	}
 
 	@Test
 	public void removeFirstSmall() {
-		SingleLinkedList<Integer> list = create(0, 6).removeFirst();
+		FplList<Integer> list = create(0, 6).removeFirst();
 		check(list, 1, 6);
 	}
 
 	@Test
+	public void removeFirstWhenFirstBucketIsOfSizeOne() {
+		FplList<Integer> list = create(0, 10, 1, 9).removeFirst();
+		check(list, 1, 10);
+	}
+
+	@Test
+	public void removeFirstWhenFirstBucketIsOfSizeTwo() {
+		FplList<Integer> list = create(0, 11, 2, 9).removeFirst();
+		check(list, 1, 11);
+	}
+
+	@Test
 	public void lastEmptyFails() {
-		assertThrows(Exception.class, () -> {
-			SingleLinkedList<Integer> list = SingleLinkedList.fromValues(new Integer[0]);
+		assertThrows(IllegalArgumentException.class, () -> {
+			FplList<Integer> list = FplList.emptyList();
 			list.removeFirst();
 		});
 	}
 
 	@Test
+	public void removeLastWhenLastBucketIsOfSizeOne() {
+		FplList<Integer> list = create(0, 10, 9, 1).removeLast();
+		check(list, 0, 9);
+	}
+
+	@Test
+	public void removeLastWhenLastBucketIsOfSizeTwo() {
+		FplList<Integer> list = create(0, 11, 9, 2).removeLast();
+		check(list, 0, 10);
+	}
+
+	@Test
 	public void getFromEmptyList() {
-		assertThrows(Exception.class, () -> {
-			SingleLinkedList.EMPTY_LIST.get(0);
+		assertThrows(IllegalArgumentException.class, () -> {
+			FplList.EMPTY_LIST.get(0);
+		});
+	}
+
+	@Test
+	public void getOutOfRange() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			create(0, 11, 9, 2).get(17);
 		});
 	}
 
 	@Test
 	public void getSmallListIndexNegative() {
-		assertThrows(Exception.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			create(0, 4).get(-1);
 		});
 	}
 
 	@Test
 	public void getSmallListIndexOutOfBounds() {
-		assertThrows(Exception.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			create(0, 4).get(4);
 		});
 	}
 
 	@Test
 	public void getLargelListIndexOutOfBounds() {
-		assertThrows(Exception.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			create(0, 101).get(101);
 		});
 	}
