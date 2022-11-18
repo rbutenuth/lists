@@ -1,5 +1,6 @@
 package de.codecentric.fpl.datatypes.list;
 
+import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.copyOfRange;
@@ -309,7 +310,8 @@ public class FplList<E> implements Iterable<E> {
 	 * @throws IllegalArgumentException If list is empty or if <code>position</code>
 	 *                                  &lt; 0 or &gt;= {@link #size()}.
 	 */
-	public Object get(int position) {
+	@SuppressWarnings("unchecked")
+	public E get(int position) {
 		checkNotEmpty();
 		if (position < 0) {
 			throw new IllegalArgumentException("position < 0");
@@ -323,7 +325,110 @@ public class FplList<E> implements Iterable<E> {
 				throw new IllegalArgumentException("position >= size");
 			}
 		}
-		return shape[bucketIdx][position - count];
+		return (E) shape[bucketIdx][position - count];
+	}
+
+	/**
+	 * @param position Position, starting with 0.
+	 * @param element  New value at position.
+	 * @return Updated list.
+	 * @throws IllegalArgumentException If list is empty or if <code>position</code> &lt;
+	 *                             0 or &gt;= {@link #size()}.
+	 */
+	public FplList<E> set(int position, E element){
+		// General strategy is to copy all elements of a bucket, then - conditionally - overwrite
+		// overwrite the one "element" to replace. Costs one write operation, gains simplicity.
+		checkNotEmpty();
+		if (position < 0) {
+			throw new IllegalArgumentException("position < 0");
+		}
+		int bucketIdx = 0;
+		int count = 0;
+		while (count + shape[bucketIdx].length <= position) {
+			count += shape[bucketIdx].length;
+			bucketIdx++;
+			if (bucketIdx >= shape.length) {
+				throw new IllegalArgumentException("position >= size");
+			}
+		}
+		Object[][] newShape;
+		int bucketSize = shape[bucketIdx].length;
+		if (bucketSize <= BASE_SIZE) {
+			// simple case: We hit a small bucket
+			newShape = shape.clone();
+			Object[] newBucket = shape[bucketIdx].clone();
+			newBucket[position - count] = element;
+			newShape[bucketIdx] = newBucket;
+		} else {
+			// we hit a large bucket, which has to be split
+			int s = size();
+			if (needsReshaping(shape.length + 1, s)) {
+				newShape = createEmptyShape(s);
+				int oldBucketIdx = 0;
+				int oldInBucketIdx = 0;
+				int newBucketIdx = 0;
+				int newInBucketIdx = 0;
+				count = 0;
+				boolean overwritten = false;
+				while (oldBucketIdx < shape.length) {
+					int oldCount = shape[oldBucketIdx].length - oldInBucketIdx;
+					int newCount = newShape[newBucketIdx].length - newInBucketIdx;
+					if (oldCount < newCount) {
+						arraycopy(shape[oldBucketIdx], oldInBucketIdx, newShape[newBucketIdx], newInBucketIdx, oldCount);
+						if (!overwritten && position - count < oldCount) {
+							newShape[newBucketIdx][newInBucketIdx + position - count] = element;
+							overwritten = true;
+						}
+						oldBucketIdx++;
+						oldInBucketIdx = 0;
+						newInBucketIdx += oldCount;
+						count += oldCount;
+					} else if (oldCount > newCount) {
+						arraycopy(shape[oldBucketIdx], oldInBucketIdx, newShape[newBucketIdx], newInBucketIdx, newCount);
+						if (!overwritten && position - count < newCount) {
+							newShape[newBucketIdx][newInBucketIdx + position - count] = element;
+							overwritten = true;
+						}
+						newBucketIdx++;
+						newInBucketIdx = 0;
+						oldInBucketIdx += newCount;
+						count += newCount;
+					} else { // oldCount == newCount
+						arraycopy(shape[oldBucketIdx], oldInBucketIdx, newShape[newBucketIdx], newInBucketIdx, oldCount);
+						if (!overwritten && position - count < newCount) {
+							newShape[newBucketIdx][newInBucketIdx + position - count] = element;
+							overwritten = true;
+						}
+						oldBucketIdx++;
+						oldInBucketIdx = 0;
+						newBucketIdx++;
+						newInBucketIdx = 0;
+						count += oldCount;
+					}
+				}
+			} else {
+				newShape = new Object[shape.length + 1][];
+				// copy buckets before split bucket
+				arraycopy(shape, 0, newShape, 0, bucketIdx);
+				
+				// split bucket (which has a length > BASE_SIZE)
+				int leftSize = bucketSize / 2;
+				int rightSize = bucketSize - leftSize;
+				newShape[bucketIdx] = copyOf(shape[bucketIdx], leftSize);
+				newShape[bucketIdx + 1] = new Object[rightSize];
+				arraycopy(shape[bucketIdx], leftSize, newShape[bucketIdx+1], 0, rightSize);
+				int inBucketIdx = position - count;
+				if (inBucketIdx < leftSize) {
+					newShape[bucketIdx][inBucketIdx] = element; 
+				} else {
+					newShape[bucketIdx + 1][inBucketIdx - leftSize] = element;
+				}
+				
+				// copy buckets behind split bucket
+				arraycopy(shape, bucketIdx + 1, newShape, bucketIdx + 2, shape.length - bucketIdx - 1);
+			}
+		}
+		return new FplList<E>(newShape);
 	}
 
 	/**
@@ -479,7 +584,7 @@ public class FplList<E> implements Iterable<E> {
 		int idx = 0, inBucketIdx = 0, dstIdx = 0, inBucketDstIdx = 0;
 		// Copy entries from "left"
 		while (idx < left.length) {
-			int length = Math.min(left[idx].length - inBucketIdx, buckets[dstIdx].length - inBucketDstIdx);
+			int length = min(left[idx].length - inBucketIdx, buckets[dstIdx].length - inBucketDstIdx);
 			arraycopy(left[idx], inBucketIdx, buckets[dstIdx], inBucketDstIdx, length);
 			inBucketIdx += length;
 			if (inBucketIdx == left[idx].length) {
@@ -496,7 +601,7 @@ public class FplList<E> implements Iterable<E> {
 		idx = 0;
 		inBucketIdx = 0;
 		while (idx < right.length) {
-			int length = Math.min(right[idx].length - inBucketIdx, buckets[dstIdx].length - inBucketDstIdx);
+			int length = min(right[idx].length - inBucketIdx, buckets[dstIdx].length - inBucketDstIdx);
 			arraycopy(right[idx], inBucketIdx, buckets[dstIdx], inBucketDstIdx, length);
 			inBucketIdx += length;
 			if (inBucketIdx == right[idx].length) {
@@ -617,7 +722,7 @@ public class FplList<E> implements Iterable<E> {
 			int bucketDstIndex = 0;
 			int rest = bucket.length - inBucketFromIdx;
 			while (rest > bucketSize) {
-				int size = Math.min(bucketSize / 2, rest);
+				int size = min(bucketSize / 2, rest);
 				bucketsDst[bucketDstIndex] = copyOfRange(bucket, inBucketFromIdx, inBucketFromIdx + size);
 				bucketDstIndex++;
 				inBucketFromIdx += size;
@@ -636,7 +741,7 @@ public class FplList<E> implements Iterable<E> {
 			int bucketDstIndex = bucketsDst.length - 1;
 			int rest = inBucketToIdx;
 			while (rest > bucketSize) {
-				int size = Math.min(bucketSize / 2, rest);
+				int size = min(bucketSize / 2, rest);
 				bucketsDst[bucketDstIndex] = copyOfRange(bucket, inBucketToIdx - size, inBucketToIdx);
 				bucketDstIndex--;
 				inBucketToIdx -= size;
